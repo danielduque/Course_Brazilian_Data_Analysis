@@ -1,0 +1,297 @@
+---
+title: 'Aula 1: Introduzindo R'
+author: "Daniel Duque & Patrick Maia"
+date: "16 de abril de 2019"
+output:  ioslides_presentation
+
+---
+
+## Referência
+
+```{r, echo = FALSE, message=FALSE}
+wd <- "xxx"
+setwd(wd)
+```
+
+__R Programming for Data Science - Roger Peng__ 
+
+* Cap. 5 -  R Nuts and Bolts
+
+* Cap. 7 -  Using the readr package
+
+* Cap 13 - Managing Data Frames with the dplyr package
+
+* Cap 14 - Control Structures
+
+* Cap 15 - Functions
+
+## Slide with R Output
+
+Atribuição de valores a objetos.
+
+```{r, echo = TRUE}
+x <- 10
+
+# Somar 2 ao objeto x
+
+x + 2
+```
+
+## Tipos de dados e objetos
+
+**Dados**
+
+1. Character
+
+2. Numerical
+
+3. Logical
+
+**Objetos**
+
+1. Vector
+2. Matrix
+3. List
+4. Data Frames
+
+## Vetores
+
+* Objeto mais simples e intuitivo da linguagem
+
+* Pode ser inicializado utilizando as funções vector ou c
+
+* Só armazena objetos do mesmo tipo
+
+```{r, echo = TRUE}
+x <- 10
+y <- 15
+z <- 25
+
+vetor <- c(x,y,z)
+vetor
+```
+
+## Vetores
+
+```{r, echo = TRUE}
+
+vetor <- vector("numeric",3)
+vetor[1] <- x
+vetor[2] <- y
+vetor[3] <- z
+vetor
+```
+
+vetor[1] <- x
+
+Leia-se: Armazene o objeto x na primeira posição do objeto vetor
+
+## Attributos
+
+* __Objetos no R possuem atributos__
+  + Um vetor ou lista possui um tamanho (length)
+  + Uma tabela no Excel (por exemplo) possui nomes nas colunas
+  + Uma matriz possui dimensões ( i x j )
+  + Um objeto possui uma classe (texto, número, vetor, matriz etc
+  
+## Matrizes
+
+* Matrizes são vetores com duas dimensões (número de linhas e de colunas)
+
+* Sua construção é orientada a partir das __colunas__
+
+* __Assim como os vetores, só armazenam objetos do mesmo tipo__
+
+```{r, echo = TRUE}
+matriz  <- matrix(c(10,15,20,25), nrow = 2, ncol = 2)
+matriz
+```
+
+## Listas
+
+* Vetor mais robusto, __capaz de armazenar tipos diferentes de objetos__
+
+* Enquanto que os vetores fazem coerção, as listas não sofrem do mesmo problema
+
+```{r, echo = TRUE}
+vetorC <- c(1,2,"patrick","maia")
+vetorC
+```
+
+Os números 1 e 2 foram lidos como texto.
+
+## Listas
+
+```{r, echo = TRUE}
+lista <- list(1,2,"patrick","maia")
+lista
+```
+
+## Missing Data
+
+* NA - Not Available
+
+* NaN - Not a Number
+
+```{r, echo = TRUE}
+VetorMissing <- c(1,2,NA,4)
+VetorMissing
+```
+
+## Data Frames
+
+* Objeto mais versátil para armazenar dados tabulares
+* Pode armazenar objetos com classes diferentes
+* Possui diversos atributos (número de linhas, número de colunas, nome das linhas, nome das colunas etc)
+* O mais comum é serem carregados a partir de arquivos mas também podem ser criados
+
+```{r, echo = TRUE}
+dataFrame <- data.frame(Estado = c("SP", "SP", "RJ"), Clientes = c(35,76,90))
+dataFrame
+```
+
+## Data Frames
+
+```{r, echo = TRUE}
+colnames(dataFrame)
+```
+
+## R Base e TidyVerse
+
+# Importar dados no R - Pacote readr
+
+* Oferece uma alternativa mais rápida em relação às funções do R Base
+
+* Possibilidade de importar arquivos pela interface gráfica
+
+```{r, echo = TRUE}
+GDP <- read_csv("gdp_csv.csv")
+```
+
+## Funções
+
+* Extrair informações de objetos
++ nrow, ncol, colnames, length
+
+* Operações matemáticas
++ exp, sqrt, sin
+
+* Estatísticas
++ qnorm, mean, sd, lm
+
+* Visualização
++ plot, hist, View
+
+## Funções - Exemplos
+
+```{r, echo = TRUE}
+# Obter 3000 valores da distribuição normal padrão
+normalPadrao <- rnorm(3000, mean = 0, sd = 1)
+
+# Média
+mean(normalPadrao)
+
+# Desvio Padrão
+sd(normalPadrao)
+
+# Plot
+hist(normalPadrao, breaks = 30)
+```
+
+## Data frames - Exemplos
+
+```{r, echo = TRUE}
+mtcars <- read_csv("mtcars.csv")
+colnames(mtcars)
+mean(mtcars$mpg)
+```
+
+## Data frames - Exemplos
+
+* Relação entre qsec (Tempo até atingir ¼ de milha) e hp (cavalos)
+
+```{r, echo = TRUE}
+# Modelo Linear
+modeloQsec <- lm(data = mtcars,
+                 formula = qsec ~ hp)
+
+# Plot com a regressão
+plot(x = mtcars$hp, 
+   y = mtcars$qsec)
+abline(modeloQsec, col = "red")
+
+```
+
+## Subsets
+
+* Várias vezes é necessário filtrar um data frame para remover observações que atendam a uma condição específica (obter um subconjunto)
+
+```{r, echo = TRUE}
+ # Apenas os carros com mpg acima da média
+mtcarsFilter <- mtcars[mtcars$mpg > 20.09062,]
+mtcarsFilter <- subset(mtcars, mpg > 20.09062)
+
+# Utilizando a fórmula de média
+mtcarsFilter <- subset(mtcars, mpg > mean(mpg))
+
+```
+
+## Estruturas de Controle
+
+* Permitem controlar o fluxo de execução do programa
+
+* Eliminam o número de linhas de código necessárias para resolver um problema
+
+1. __If / Else__ - Testar uma condição
+
+2. __For__ - Executar um loop um número pré definido de vezes
+
+3. __While__ - Executar um loop enquanto uma condição pré definida for verdadeira
+
+## Estruturas de Controle - If / Else
+
+Estrutura Básica
+
+if( condição ) {
+ ## ação - caso TRUE
+} else {
+ ## ação - caso FALSE
+}
+
+```{r, echo = TRUE}
+if( sample(1:10,1) > 5 ) {
+ print("Cara")
+} else {
+ print("Coroa")
+}
+```
+
+## Estruturas de Controle - For
+
+Estrutura Básica
+
+for( i in 1:100 ) {
+ ## ação - iteração
+} 
+
+```{r, echo = TRUE}
+for( i in 1:32 ) {
+ print(mtcars$mpg[i])
+} 
+```
+
+## Estruturas de Controle - While
+
+Estrutura Básica
+
+while( condição ) {
+ ## ação - enquanto TRUE
+} 
+
+```{r, echo = TRUE}
+contador <- 30
+while( contador > 5  ) {
+ print(exp(contador))
+contador <- contador - 1
+} 
+```

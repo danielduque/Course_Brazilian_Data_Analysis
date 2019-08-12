@@ -1,0 +1,224 @@
+---
+title: 'Aula 2: Análise de Dados no R'
+author: "Daniel Duque & Patrick Maia"
+date: "18 de abril de 2019"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Referências
+
+**WICHHAM, Hadley.** R for Data Science: Import, Tidy, Transform, Visualize, and Model Data
+Disponível aqui: https://r4ds.had.co.nz/
+
+
+
+## Hoje
+
+1. __Dados brasileiros__ - PNADC, PNAD
+
+2. __Leitura de dados__ - readr
+
+3. __Manipulação de dados__ - dplyr
+
+
+## Dados Brasileiros
+
+1. PNAD
++ https://www.ibge.gov.br/estatisticas-novoportal/downloads-estatisticas.html
++ Trabalho e Rendimento ??? PNAD Anual ??? Microdados
+2. PNAD Contínua Trimestral
++ https://www.ibge.gov.br/estatisticas-novoportal/downloads-estatisticas.html
++ Trabalho e Rendimento ??? PNAD Contínua ??? Trimestral ???  Microdados
+3. TSE
++ http://www.tse.jus.br/eleicoes/estatisticas/estatisticas-eleitorais
+
+## dplyr - Funções
+
+1. __mutate__ - Criar novas variáveis
+2. __select__ - Selecionar variáveis
+3. __filter__ - Filtrar variáveis
+4. __summarize__ - Reduzir variáveis a um valor
+5. __arrange__ -  Ordenar as variáveis
+6. __group_by__ - Agrupar dados em uma variável
+
+## dplyr - Operador %>%
+
+Selecione 3000 números da distribuição Normal, __e então__ exponencie __e então__ obtenha a média
+
+```{r, echo = TRUE}
+mean(exp(rnorm(3000)))
+```
+
+* Mais difícil entender a ordem das operações
+
+* Adicionar mais perações tornará a expressão ainda mais complexa 
+
+## dplyr - Operador %>%
+
+Alternativamente, é possível escrever:
+
+```{r, echo = TRUE, message=FALSE}
+library(dplyr)
+rnorm(3000) %>% exp %>% mean
+```
+
+* A expresão é escrita como é falada
+
+* Fácil de explicar
+
+## dplyr - mutate
+
+Cria colunas (variáveis) no dataframe
+
+```{r, echo = TRUE, message=FALSE}
+gdp_csv <- gdp_csv %>% mutate(LogValue = log(Value),
+                              ValueM = Value/1000000)
+gdp_csv %>% summary(LogValue)
+gdp_csv %>% summary(ValueM)
+```                              
+
+## dplyr - select
+
+Selecionar colunas do dataframe
+
+```{r, echo = TRUE, message=FALSE}
+gdp_csv_log <- gdp_csv %>%
+  select(`Country Name`, LogValue)
+summary(gdp_csv_log)
+```
+
+## dplyr - filter
+
+Filtrar as linhas que atendam a uma condição
+
+```{r, echo = TRUE, message=FALSE}
+gdp_Brazil <- gdp_csv %>%
+  filter(`Country Name` == "Brazil")
+summary(gdp_Brazil)
+```
+
+## dplyr - summary
+
+Resumir uma variável
+
+```{r, echo = TRUE, message=FALSE}
+gdp_Brazil_Mean <- gdp_Brazil %>%
+  summarise(meanGDP = mean(Value))
+```
+
+## dplyr - arrange
+
+Ordenar uma variável
+
+```{r, echo = TRUE, message=FALSE}
+gdp_Brazil <- gdp_Brazil %>%
+  arrange(Year)
+
+# Decrescente (sinal de menos)
+
+gdp_Brazil <- gdp_Brazil %>%
+  arrange(-Year)
+```
+
+## dplyr - filtrar e resumir
+
+```{r, echo = TRUE, message=FALSE}
+gdp_Brazil_Mean <- gdp_csv %>%
+    filter(`Country Name` == "Brazil") %>%
+    summarise(MeanGDP = mean(Value))
+```
+
+## dplyr - group by
+
+Agrupar e então resumir.
+
+```{r, echo = TRUE, message=FALSE}
+gdp_Countries <- gdp_csv %>%
+  group_by(`Country Name`) %>%
+  summarise(MeanGDP = mean(Value))
+```
+
+## Leitura dos Dados - PNAD Contínua
+
+* Arquivo de texto com colunas de tamanho fixo
+
+* Exemplo: Coluna com a idade possui tamanho 2, coluna com a renda possui tamanho 7
+
+* Necessário possuir tabela com o tamanho de cada coluna
+
+* __Função read_fwf (Read Fixed Width File)__
+
+* __Necessário nomear as colunas do dataframe (colnames)__
+
+## Leitura dos Dados - PNAD
+
+* Arquivo de texto delimitado por separador (TAB)
+
+* __Função read_delim (Read Delimited)__
+
+* __Já vem com as colunas nomeadas__
+
+## Manipulação de Dados - PNAD Contínua
+
+* Não precisamos de todas as colunas da PNAD Contínua, precisamos filtrar as essenciais
+
+* Algumas das colunas aparecem como character, precisamos mudar para numeric
+
+* Precisamos criar algumas variáveis
+
+Objetivo: Cariocas, com idade entre 25 e 49 anos e renda entre R$ 0 e R$ 9000
+
+## Manipulação de Dados - PNAD Contínua
+
+```{r, echo = TRUE, message=FALSE}
+SizesPNAD <- read_csv2("SizesPNADc.csv")
+PNADC2018 <- read_fwf(file = "PNADC_042018_20190108.txt", fwf_widths(SizesPNAD$Size))
+colnames(PNADC2018) <- SizesPNAD$Nome
+
+PNADRJ <- PNADC2018 %>%
+  select(V4013,VD4009,V2009,V2007,V2010,UF,VD3002,VD4031,VD4016,V1028) %>%
+  mutate(V4013 = as.numeric(V4013),
+         VD4009 = as.numeric(VD4009),
+         V2009 = as.numeric(V2009),
+         V2007 = as.numeric(V2007),
+         V2010 - as.numeric(V2010),
+         UF = as.numeric(UF),
+         VD3002 = as.numeric(VD3002),
+         VD4031 = as.numeric(VD4031),
+         VD4016 = as.numeric(VD4016),
+         V1028 = as.numeric(V1028),
+         Sexo = ifelse(V2007 == 1, "Homem", "Mulher")) %>%
+  filter(V2009 >= 25 & V2009 <= 49, # Idade entre 25 e 49 anos
+         UF == 33, # Apenas cariocas
+         VD4016 > 0 & VD4016 <= 9000) # Renda mensal entre R$ 0 e R$ 9000
+```
+
+## Visualização de Dados - PNAD Contínua
+
+* Colunas
+
+* Scatter
+
+* Boxplot
+
+* Density
+
+## Visualização de Dados - PNAD Contínua
+
+```{r, echo = TRUE, message=FALSE}
+# Barras - Renda mÃ©dia por anos de estudo
+
+dadosMeanAnosEstudo <- PNADRJ %>%
+  group_by(VD3002) %>%
+  summarise(MediaRenda = mean(VD4016))
+
+ggplot(data = dadosMeanAnosEstudo, aes(x = VD3002, y = MediaRenda, label = VD3002, fill = VD3002)) + 
+  geom_col() + 
+  labs(x = "Anos de Estudo", 
+       y = "MÃ©dia da Renda Mensal (R$)", 
+       title = "GrÃ¡fico de Colunas")
+```

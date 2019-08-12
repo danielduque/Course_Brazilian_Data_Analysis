@@ -1,0 +1,226 @@
+---
+title: 'Aula 3 Visualizacao de dados'
+author: "Daniel Duque e Patrick Maia"
+date: "24 de maio de 2019"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Hoje
+
+1. __Dados brasileiros__ - PIB Estadual e Gini entre municípios
+
+2. __Visualização de dados: Gráficos__ - ggplot
+
+3. __Visualização de dados: Gifs__ - gganimate
+
+## Pacotes
+
+```{r, echo=T, warning=F}
+#install.packages("ecoseries")
+#install.packages("sidrar")
+#install.packages("seasonal")
+#install.packages("owdbr")
+
+library(tidyr)
+#library(tidyverse)
+#library(owdbr)
+library(sidrar)
+library(dplyr)
+library(ggplot2)
+library(gganimate)
+library(gifski)
+library(png)
+library(transformr)
+library(zoo)
+library(readxl)
+```
+
+## Quais dados pegaremos?
+
+1. __PIB__
+2. __Gini__
+3. __Deflator__
+4. __População Residente__
+
+Vamos usas o sidrar para olhar para eles. 
+
+## PIB
+
+```{r,echo=T, warning=FALSE}
+info_sidra(5938)
+```
+
+## Gini
+
+```{r,echo=T,  warning=FALSE}
+info_sidra(5939)
+```
+
+## Deflator
+
+```{r,echo=T,  warning=FALSE}
+info_sidra(6784)
+```
+
+## População Residente
+
+```{r,echo=T,  warning=FALSE}
+info_sidra(6579)
+```
+
+## Como transformar em dataframes?
+
+```{r,echo=T,  warning=FALSE}
+br_deflator <- get_sidra(6784,variable=9811,period="all") 
+estados_gini <- get_sidra(5939,variable=529,period="all",geo="State") 
+estados_pop <- get_sidra(6579,variable=9324,period="all",geo="State")
+estados_pib <- get_sidra(5938,variable=37,period="all",geo="State")
+
+```
+
+## Preparação dos dados, pt 1
+
+```{r,echo=T, warning=FALSE}
+estados_pib <- estados_pib %>%
+select(`Unidade da Federação`,
+`Unidade da Federação (Código)`, 
+Ano, PIB_Mil = Valor) %>%
+left_join(estados_pop %>% 
+select(`Unidade da Federação`,
+Ano, Populacao = Valor ))
+```
+
+## Vamos ver a base
+
+```{r,echo=T}
+head(estados_pib)
+```
+
+## Preparação dos dados, pt 2
+
+```{r,echo=T,  warning=FALSE}
+# Criar o PIB per Capita
+
+estados_pib <- estados_pib %>%
+  mutate(PIBperCapita = PIB_Mil/Populacao)
+
+summary(estados_pib$PIBperCapita)
+```
+
+## Como fazer com tenhamos PIB per Capita a níveis reais?
+
+```{r,echo=T,  warning=FALSE}
+# Usando o deflator
+
+br_deflator$acumulado <- 1
+
+for(x in 2:21) {
+  
+br_deflator$acumulado[x] <-
+  br_deflator$acumulado[x-1]*(br_deflator$Valor[x]/100+1)  
+  
+}
+```
+
+## Agora, juntando PIB e Deflator
+
+```{r,echo=T,  warning=FALSE}
+estados_pib <- estados_pib %>%
+  inner_join(br_deflator %>% 
+             select(Ano, Deflator = acumulado ))
+
+estados_pib <- estados_pib %>% 
+  group_by(`Unidade da Federação (Código)`) %>%
+  mutate(Deflator=Deflator/first(Deflator))
+
+estados_pib <- estados_pib %>%
+  mutate(PIBperCapitaReal=PIBperCapita/Deflator)
+
+```
+
+## E agora, o que temos?
+
+```{r,echo=T,  warning=FALSE}
+summary(estados_pib$PIBperCapitaReal)
+```
+
+## Podemos já começar a brincar
+
+1. O ggplot é a nossa ferramenta fundamental. 
+2. Nele, precisamos dizer qual é a nossa base e nosso x. 
+3. Adicionalmente, podemos dizer qual é o y, e estabelecer uma cor para grupos distintos.
+4. A partir daí, adicionamos os gráficos propriamente ditos. 
+
+## Algumas opções de gráficos
+
+1. geom_line -> Gráfico de linha
+2. geom_point -> Gráfico de plot
+3. geom_col / geom_bar -> Gráfico de barras
+
+Há ainda mais opções, e os gráficos podem se sobrepor. 
+
+## Primeiro exemplo
+
+Vamos analisar esse primeiro comando.
+
+Como se vê, o primeiro parâmetro foi a base.
+
+Para falar quem seria o x e o y, usamos o "aes".
+
+Estabelecemos uma cor para cada Unidade da Federação.
+
+```{r,echo=T, eval=FALSE, include=T}
+ggplot(estados_pib,aes(x=Ano,y=log(PIBperCapitaReal),
+                       colour=`Unidade da Federação (Código)`))+
+  geom_line(aes(group=`Unidade da Federação`))+
+  labs(title = 'PIB per Capita by year', x = 'Year', 
+       y = 'Log of PIB per Capita', caption = "Based on IBGE Databases")
+```
+
+## 
+
+```{r,echo=F}
+ggplot(estados_pib,aes(x=Ano,y=log(PIBperCapitaReal),colour=`Unidade da Federação`))+
+  geom_line(aes(group=`Unidade da Federação`))+
+  labs(title = 'PIB per Capita by year', x = 'Year', y = 'Log of PIB per Capita', caption = "Based on IBGE Databases")
+
+```
+
+## Talvez queiramos tirar os anos em branco
+
+```{r,echo=T, eval=FALSE, include=T}
+ ggplot(subset(estados_pib,Ano != 2007 & Ano != 2010),aes(x=Ano,y=log(PIBperCapitaReal),colour=`Unidade da Federação`))+
+   geom_line(aes(group=`Unidade da Federação`))+
+  labs(title = 'PIB per Capita by year', x = 'Year', y = 'Log of PIB per Capita', caption = "Based on IBGE Databases")
+```  
+
+##   
+
+```{r,echo=F}
+ ggplot(subset(estados_pib,Ano != 2007 & Ano != 2010),aes(x=Ano,y=log(PIBperCapitaReal),colour=`Unidade da Federação`))+
+   geom_line(aes(group=`Unidade da Federação`))+
+  labs(title = 'PIB per Capita by year', x = 'Year', y = 'Log of PIB per Capita', caption = "Based on IBGE Databases")
+```  
+
+
+## E se animássemos um pouco as coisas?
+
+```{r,echo=T, eval=FALSE, include=T}
+ ggplot(subset(estados_pib,Ano != 2007 & Ano != 2010),aes(x=Ano,y=log(PIBperCapitaReal),colour=`Unidade da Federação`))+
+   geom_line(aes(group=`Unidade da Federação`))+
+   labs(title = 'PIB per Capita by year', x = 'Year', y = 'Log of PIB per Capita', caption = "Based on IBGE Databases")+
+   transition_reveal(as.numeric(Ano))
+```
+
+## 
+
+```{r,echo=F }
+ ggplot(subset(estados_pib,Ano != 2007 & Ano != 2010),aes(x=Ano,y=log(PIBperCapitaReal),colour=`Unidade da Federação`))+
+   geom_line(aes(group=`Unidade da Federação`))+
+   labs(title = 'PIB per Capita by year', x = 'Year', y = 'Log of PIB per Capita', caption = "Based on IBGE Databases")+
+   transition_reveal(as.numeric(Ano))
+```
