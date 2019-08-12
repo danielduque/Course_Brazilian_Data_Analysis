@@ -3,11 +3,13 @@
 analysis of Brazilian socioeconomic microdata in R.
 
 pt-br
+
 Curso de Análise de Dados Brasileiros com R
 
 Carga horária: 8 horas (+3 horas extras opcionais)
 
 Objetivos:
+
 ● Capacitar o aluno a utilizar o software estatístico R para análise e visualização de dados.
 
 ● Familiarizar o aluno com os principais dados populacionais brasileiros.
